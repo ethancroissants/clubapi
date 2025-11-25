@@ -350,6 +350,37 @@ end
 
 
 
+function airtable.count_records(table_name, filter_formula)
+	if type(table_name) ~= "string" or table_name == "" then
+		pprint({ error = "invalid_table_name", provided = table_name })
+		return nil
+	end
+
+	local count = 0
+	local offset = nil
+
+	repeat
+		local params = {
+			pageSize = 100,
+			offset = offset
+		}
+		if filter_formula and type(filter_formula) == "string" and filter_formula ~= "" then
+			params.filterByFormula = filter_formula
+		end
+
+		local res = airtable.list_records(table_name, nil, params)
+
+		if not res or not res.records then
+			return nil
+		end
+
+		count = count + #res.records
+		offset = res.offset
+	until not offset
+
+	return count
+end
+
 return airtable
 
 

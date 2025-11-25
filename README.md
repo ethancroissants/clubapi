@@ -1,3 +1,3 @@
-auth:
+# Clubs API
 
-if auth.checkRead(req:headers().authorization) then
+API For interacting with clubs

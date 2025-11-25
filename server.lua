@@ -3,31 +3,73 @@ local airtable = require("utils/airtable")
 local url = require("utils/urlparams")
 local auth = require("utils/auth")
 
+-----------------
+-- GET RECORDS --
+-----------------
 
+
+-- No auth required (duh)
 server:get("/", function()
     return {status = 200, response = "Clubs API", routes = {"/clubs", "/clubs/:id"}}
 end)
 
 
-server:get("/clubs", function(req)
-    pprint(req:headers())
-        return {totalClubs  = airtable.list_records("Clubs", "Ivie ByID").records[1].fields.id}
-    end)
+-- CLUB MANAGEMENT
 
+-- Get total number of clubs
+-- No auth required 
+server:get("/clubs", function(req)
+    return {totalClubs  = airtable.list_records("Clubs", "Ivie ByID").records[1].fields.id}
+end)
+
+-- Get amount of clubs in country
+-- No auth required
+-- Params: country (string)
+server:get("/clubs/country", function(req)
+    local params = url.parse_query(req:uri())
+    local formula = "{venue_address_country} = " .. params.country
+    return {clubs  = airtable.count_records("Clubs", formula)}
+end)
+
+-- Get club info from name
+-- Auth: Read = all records, No auth = Some (non pii exposing) records
+-- Params: name (string, name of the club)
 server:get("/club", function(req)
+if auth.checkRead(req:headers().authorization) == false then
     local params = url.parse_query(req:uri())
     local formula = "{club_name} = " .. params.name
     local fields = {"Est. # of Attendees", "call_meeting_days", "call_meeting_length", "club_name", "club_status", "id", "leader_slack_id", "level", "venue_address_country"}
     local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+    if club == nil then
+        return {club_name = nil}
+    end
     return club
+else 
+    local params = url.parse_query(req:uri())
+    local formula = "{club_name} = " .. params.name
+    local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York"}).records[1]
+    if club == nil then
+        return {club_name = nil}
+    end
+    return club
+end
 end)
 
+-- LEADER MANAGEMENT 
+
+-- Get leader from email
+-- Auth: Read = club name, No auth = true/false
+-- Params: email (string, email of the leader)
 server:get("/leader", function(req)
+if auth.checkRead(req:headers().authorization) then
     local params = url.parse_query(req:uri())
     local formula = "{email} = " .. params.email
     local fields = {"rel_leader_to_clubs", "rel_co_leader_to_clubs"}
     local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
     local club = nil
+    if leader == nil then
+        return {club_name = nil}
+    end
     if leader.fields.rel_leader_to_clubs then
         club = leader.fields.rel_leader_to_clubs[1]
     elseif leader.fields.rel_co_leader_to_clubs then
@@ -35,26 +77,102 @@ server:get("/leader", function(req)
     end
     local club_name = airtable.get_record("Clubs", club).fields.club_name
     return {club_name = club_name}
+else 
+    local params = url.parse_query(req:uri())
+    local formula = "{email} = " .. params.email
+    local fields = {"rel_leader_to_clubs", "rel_co_leader_to_clubs"}
+    local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields})
+    if leader.records[1] == nil then
+        return {leader = false}
+    else 
+        return {leader = true}
+    end
+end
 end)
 
+-- SHIP MANAGEMENT
+
+-- Get clubs ships from club name
+-- Auth: Read = all records, No auth = Some (non pii exposing) records
+-- Params: club_name (string, name of the club)
 server:get("/ships", function(req)
+if auth.checkRead(req:headers().authorization) == false then
     local params = url.parse_query(req:uri())
     local formula = "{club_name (from Clubs)} = " .. params.club_name
     local fields = {"workshop", "Rating", "code_url", "club_name (from Clubs)", "YSWS–Name (from Unified YSWS Database)"}
     local ships = airtable.list_records("Club Ships", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records
     return ships
+else 
+    local params = url.parse_query(req:uri())
+    local formula = "{club_name (from Clubs)} = " .. params.club_name
+    local ships = airtable.list_records("Club Ships", "Grid view", {filterByFormula = formula, timeZone = "America/New_York"}).records
+    return ships
+end
 end)
 
+-- LEVEL/STATUS MANAGEMENT
+
+-- Get club level from club name
+-- No auth required
+-- Params: club_name (string, name of the club)
 server:get("/level", function(req)
     local params = url.parse_query(req:uri())
     local formula = "{club_name} = " .. params.club_name
     local fields = {"level"}
-    local level = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1].fields.level 
-    return {level = level}  
+    local level = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+    if level == nil then
+        return {level = "No club found"}
+    end
+    return {level = level.fields.level}  
+end)
+
+
+-- Get club status from club name
+-- No auth required
+-- Params: club_name (string, name of the club)
+server:get("/status", function(req)
+    local params = url.parse_query(req:uri())
+    local formula = "{club_name} = " .. params.club_name
+    local fields = {"club_status"}
+    local status = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+    if status == nil then
+        return {status = "No club found"}
+    end
+    return {status = status.fields.club_status}  
+end)
+
+------------------
+-- POST RECORDS --
+------------------
+
+-- LEADER MANAGEMENT 
+
+-- Change clubs leaders email
+-- Write perms required 
+-- Params: email (string, old email of the leader), new_email (string, new email of the leader)
+server:post("/leader", function(req)
+if auth.checkWrite(req:headers().authorization) then
+    local params = url.parse_query(req:uri())
+    local email = params.email
+    local new_email = params.new_email
+    if email == nil or new_email == nil then
+        return {error = "Missing email"}
+    end
+    local formula = "{email} = " .. email
+    local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula}).records[1]
+    if leader == nil then
+        return {error = "Leader not found"}
+    end
+    local id = leader.id
+    local updateLeader = airtable.update_record("Leaders", id, {email = url.strip_quotes(new_email)})
+    return {new_email = updateLeader.fields.email}
+else 
+    return {error = "Unauthorized"}
+end
 end)
 
 
 
-server.port = 3000
-pprint("Server running on port 3000")
+server.port = os.getenv("PORT")
+pprint("Server running on port " .. server.port)
 server:run()
