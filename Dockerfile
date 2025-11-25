@@ -4,7 +4,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     curl \
-    wget 
+    wget \
+    sudo
 
 RUN curl -fsSL https://astra.arkforge.net/install.sh | bash
 
