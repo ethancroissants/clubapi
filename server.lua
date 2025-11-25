@@ -171,7 +171,55 @@ else
 end
 end)
 
+-- LEVEL/STATUS MANAGEMENT
 
+-- Change club status
+-- Write perms required 
+-- Params: status (string, new status of the club), club_name (string, name of the club)
+server:post("/status", function(req)
+if auth.checkWrite(req:headers().authorization) then
+    local params = url.parse_query(req:uri())
+    local status = params.status
+    local club_name = params.club_name
+    if status == nil or club_name == nil then
+        return {error = "Missing parameters"}
+    end
+    local formula = "{club_name} = " .. club_name
+    local club = airtable.list_records("Clubs", "Full Grid View", {filterByFormula = formula}).records[1]
+    if club == nil then
+        return {error = "Club not found"}
+    end
+    local id = club.id
+    local updateClub = airtable.update_record("Clubs", id, {club_status = url.strip_quotes(status)})
+    return {new_status = updateClub.fields.club_status}
+else 
+    return {error = "Unauthorized"}
+end
+end)
+
+-- Change club level
+-- Write perms required 
+-- Params: level (string, new level of the club), club_name (string, name of the club)
+server:post("/level", function(req)
+if auth.checkWrite(req:headers().authorization) then
+    local params = url.parse_query(req:uri())
+    local level = params.level
+    local club_name = params.club_name
+    if level == nil or club_name == nil then
+        return {error = "Missing parameters"}
+    end
+    local formula = "{club_name} = " .. club_name
+    local club = airtable.list_records("Clubs", "Full Grid View", {filterByFormula = formula}).records[1]
+    if club == nil then
+        return {error = "Club not found"}
+    end
+    local id = club.id
+    local updateClub = airtable.update_record("Clubs", id, {level = url.strip_quotes(level)})
+    return {new_level = updateClub.fields.level}
+else 
+    return {error = "Unauthorized"}
+end
+end)
 
 server.port = os.getenv("PORT")
 pprint("Server running on port " .. server.port)

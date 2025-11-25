@@ -12,7 +12,9 @@ function url.parse_query(uri)
 
     for key, value in query:gmatch("([^&=?]+)=([^&=?]+)") do
         -- decode percent encoding if needed
+        key = key:gsub("%+", " ")
         key = key:gsub("%%(%x%x)", function(h) return string.char(tonumber(h, 16)) end)
+        value = value:gsub("%+", " ")
         value = value:gsub("%%(%x%x)", function(h) return string.char(tonumber(h, 16)) end)
 
         if not (value:sub(1, 1) == '"' and value:sub(-1) == '"') then
