@@ -8,32 +8,21 @@ local auth = require("utils/auth")
 -----------------
 
 
--- No auth required (duh)
-server:get("/", function()
-    return {status = 200, response = "Clubs API", routes = {"/clubs", "/clubs/:id"}}
-end)
+server:static_file("/", "docs.html")
 
 
 -- CLUB MANAGEMENT
 
--- Get total number of clubs
--- No auth required 
 server:get("/clubs", function(req)
     return {totalClubs  = airtable.list_records("Clubs", "Ivie ByID").records[1].fields.id}
 end)
 
--- Get amount of clubs in country
--- No auth required
--- Params: country (string)
 server:get("/clubs/country", function(req)
     local params = url.parse_query(req:uri())
     local formula = "{venue_address_country} = " .. params.country
     return {clubs  = airtable.count_records("Clubs", formula)}
 end)
 
--- Get club info from name
--- Auth: Read = all records, No auth = Some (non pii exposing) records
--- Params: name (string, name of the club)
 server:get("/club", function(req)
 if auth.checkRead(req:headers().authorization) == false then
     local params = url.parse_query(req:uri())
@@ -57,9 +46,6 @@ end)
 
 -- LEADER MANAGEMENT 
 
--- Get leader from email
--- Auth: Read = club name, No auth = true/false
--- Params: email (string, email of the leader)
 server:get("/leader", function(req)
 if auth.checkRead(req:headers().authorization) then
     local params = url.parse_query(req:uri())
@@ -92,9 +78,6 @@ end)
 
 -- SHIP MANAGEMENT
 
--- Get clubs ships from club name
--- Auth: Read = all records, No auth = Some (non pii exposing) records
--- Params: club_name (string, name of the club)
 server:get("/ships", function(req)
 if auth.checkRead(req:headers().authorization) == false then
     local params = url.parse_query(req:uri())
@@ -112,9 +95,6 @@ end)
 
 -- LEVEL/STATUS MANAGEMENT
 
--- Get club level from club name
--- No auth required
--- Params: club_name (string, name of the club)
 server:get("/level", function(req)
     local params = url.parse_query(req:uri())
     local formula = "{club_name} = " .. params.club_name
@@ -126,10 +106,6 @@ server:get("/level", function(req)
     return {level = level.fields.level}  
 end)
 
-
--- Get club status from club name
--- No auth required
--- Params: club_name (string, name of the club)
 server:get("/status", function(req)
     local params = url.parse_query(req:uri())
     local formula = "{club_name} = " .. params.club_name
@@ -147,9 +123,6 @@ end)
 
 -- LEADER MANAGEMENT 
 
--- Change clubs leaders email
--- Write perms required 
--- Params: email (string, old email of the leader), new_email (string, new email of the leader)
 server:post("/leader", function(req)
 if auth.checkWrite(req:headers().authorization) then
     local params = url.parse_query(req:uri())
@@ -173,9 +146,6 @@ end)
 
 -- LEVEL/STATUS MANAGEMENT
 
--- Change club status
--- Write perms required 
--- Params: status (string, new status of the club), club_name (string, name of the club)
 server:post("/status", function(req)
 if auth.checkWrite(req:headers().authorization) then
     local params = url.parse_query(req:uri())
@@ -197,9 +167,6 @@ else
 end
 end)
 
--- Change club level
--- Write perms required 
--- Params: level (string, new level of the club), club_name (string, name of the club)
 server:post("/level", function(req)
 if auth.checkWrite(req:headers().authorization) then
     local params = url.parse_query(req:uri())
