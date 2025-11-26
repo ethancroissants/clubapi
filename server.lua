@@ -2,6 +2,8 @@ local server = require("http").server.new()
 local airtable = require("utils/airtable")
 local url = require("utils/urlparams")
 local auth = require("utils/auth")
+local log = require("utils/logging")
+
 
 -----------------
 -- GET RECORDS --
@@ -14,16 +16,19 @@ server:static_file("/", "docs.html")
 -- CLUB MANAGEMENT
 
 server:get("/clubs", function(req)
+    log.request(req:uri(), req:headers())
     return {totalClubs  = airtable.list_records("Clubs", "Ivie ByID").records[1].fields.id}
 end)
 
 server:get("/clubs/country", function(req)
+    log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
     local formula = "{venue_address_country} = " .. params.country
     return {clubs  = airtable.count_records("Clubs", formula)}
 end)
 
 server:get("/club", function(req)
+    log.request(req:uri(), req:headers())
 if auth.checkRead(req:headers().authorization) == false then
     local params = url.parse_query(req:uri())
     local formula = "{club_name} = " .. params.name
@@ -47,6 +52,7 @@ end)
 -- LEADER MANAGEMENT 
 
 server:get("/leader", function(req)
+    log.request(req:uri(), req:headers())
 if auth.checkRead(req:headers().authorization) then
     local params = url.parse_query(req:uri())
     local formula = "{email} = " .. params.email
@@ -79,6 +85,7 @@ end)
 -- SHIP MANAGEMENT
 
 server:get("/ships", function(req)
+    log.request(req:uri(), req:headers())
 if auth.checkRead(req:headers().authorization) == false then
     local params = url.parse_query(req:uri())
     local formula = "{club_name (from Clubs)} = " .. params.club_name
@@ -96,6 +103,7 @@ end)
 -- LEVEL/STATUS MANAGEMENT
 
 server:get("/level", function(req)
+    log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
     local formula = "{club_name} = " .. params.club_name
     local fields = {"level"}
@@ -107,6 +115,7 @@ server:get("/level", function(req)
 end)
 
 server:get("/status", function(req)
+    log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
     local formula = "{club_name} = " .. params.club_name
     local fields = {"club_status"}
@@ -124,6 +133,7 @@ end)
 -- LEADER MANAGEMENT 
 
 server:post("/leader", function(req)
+    log.request(req:uri(), req:headers())
 if auth.checkWrite(req:headers().authorization) then
     local params = url.parse_query(req:uri())
     local email = params.email
@@ -147,6 +157,7 @@ end)
 -- LEVEL/STATUS MANAGEMENT
 
 server:post("/status", function(req)
+    log.request(req:uri(), req:headers())
 if auth.checkWrite(req:headers().authorization) then
     local params = url.parse_query(req:uri())
     local status = params.status
@@ -168,6 +179,7 @@ end
 end)
 
 server:post("/level", function(req)
+    log.request(req:uri(), req:headers())
 if auth.checkWrite(req:headers().authorization) then
     local params = url.parse_query(req:uri())
     local level = params.level

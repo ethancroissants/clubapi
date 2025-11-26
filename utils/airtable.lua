@@ -78,7 +78,6 @@ function airtable.list_records(table_name, view, params)
 	end
 
 	local res = res_or_err
-	pprint(res)
 
 	if not res then
 		pprint({ error = "Airtable list_records request failed", status = "no response", body = nil })
@@ -138,7 +137,6 @@ function airtable.get_record(table_name, record_id)
 	end
 
 	local res = res_or_err
-	pprint(res)
 
 	if not res then
 		pprint({ error = "Airtable get_record request failed", status = "no response", body = nil })
@@ -200,7 +198,6 @@ function airtable.create_record(table_name, fields)
 	end
 
 	local res = res_or_err
-	pprint(res)
 
 	if not res then
 		pprint({ error = "Airtable create_record request failed", status = "no response", body = nil })
@@ -266,7 +263,6 @@ function airtable.update_record(table_name, record_id, fields)
 	end
 
 	local res = res_or_err
-	pprint(res)
 
 	if not res then
 		pprint({ error = "Airtable update_record request failed", status = "no response", body = nil })
@@ -326,7 +322,6 @@ function airtable.delete_record(table_name, record_id)
 	end
 
 	local res = res_or_err
-	pprint(res)
 
 	if not res then
 		pprint({ error = "Airtable delete_record request failed", status = "no response", body = nil })
