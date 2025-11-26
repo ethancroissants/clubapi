@@ -16,7 +16,6 @@ server:static_file("/", "docs.html")
 -- CLUB MANAGEMENT
 
 server:get("/clubs", function(req)
-    log.request(req:uri(), req:headers())
     return {totalClubs  = airtable.list_records("Clubs", "Ivie ByID").records[1].fields.id}
 end)
 
