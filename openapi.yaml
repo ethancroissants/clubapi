@@ -239,6 +239,50 @@ paths:
                       items:
                         type: string
 
+  /members:
+    get:
+      summary: Get club members
+      description: Returns the members of the specified club. Requires Read permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: club_name
+          schema:
+            type: string
+          required: true
+          description: Name of the club
+      responses:
+        '200':
+          description: Club members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Club not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Club not found"
+
   /level:
     get:
       summary: Get club level

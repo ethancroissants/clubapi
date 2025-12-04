@@ -99,6 +99,24 @@ else
 end
 end)
 
+-- MEMBERS MANAGEMENT
+
+server:get("/members", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkRead(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        local formula = "{club_name} = " .. params.club_name
+        local fields = {"Members"}
+        local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+        if club == nil then
+            return {error = "Club not found"}
+        end
+        return {members = club.fields.Members}
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
 -- LEVEL/STATUS MANAGEMENT
 
 server:get("/level", function(req)
