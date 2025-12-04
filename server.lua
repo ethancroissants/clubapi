@@ -111,7 +111,16 @@ server:get("/members", function(req)
         if club == nil then
             return {error = "Club not found"}
         end
-        return {members = club.fields.Members}
+        local memberIds = club.fields.Members
+        if memberIds == nil then
+            return {members = {}}
+        end
+        local memberNames = {}
+        for _, memberId in ipairs(memberIds) do
+            local member = airtable.get_record("Members", memberId)
+            table.insert(memberNames, member.fields.Name)
+        end
+        return {members = memberNames}
     else
         return {error = "Unauthorized"}
     end
