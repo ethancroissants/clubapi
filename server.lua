@@ -26,6 +26,24 @@ server:get("/clubs/country", function(req)
     return {clubs  = airtable.count_records("Clubs", formula)}
 end)
 
+server:get("/club/code", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkRead(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        if params.code == nil then
+            return {error = "Missing code parameter"}
+        end
+        local formula = "{Join Code} = " .. params.code
+        local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York"}).records[1]
+        if club == nil then
+            return {error = "Club not found"}
+        end
+        return club
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
 server:get("/club", function(req)
     log.request(req:uri(), req:headers())
 if auth.checkRead(req:headers().authorization) == false then
@@ -99,7 +117,50 @@ else
 end
 end)
 
--- MEMBERS MANAGEMENT
+-- MEMBER MANAGEMENT
+
+server:get("/member", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkRead(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        if params.name == nil then
+            return {error = "Missing name parameter"}
+        end
+        local formula = "{Name} = " .. params.name
+        local fields = {"Name", "club_name"}
+        local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+        if member == nil then
+            return {error = "Member not found"}
+        end
+        local name = member.fields.club_name[1]
+        return name
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
+server:delete("/member", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkWrite(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        if params.name == nil then
+            return {error = "Missing name parameter"}
+        end
+        local formula = "{Name} = " .. params.name
+        local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula}).records[1]
+        if member == nil then
+            return {error = "Member not found"}
+        end
+        local result = airtable.delete_record("Members", member.id)
+        if result and result.deleted then
+            return {deleted = true, id = result.id}
+        else
+            return {error = "Failed to delete member"}
+        end
+    else
+        return {error = "Unauthorized"}
+    end
+end)
 
 server:get("/members", function(req)
     log.request(req:uri(), req:headers())

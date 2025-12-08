@@ -80,6 +80,47 @@ paths:
                   clubs:
                     type: integer
 
+  /club/code:
+    get:
+      summary: Get club info from code
+      description: Returns information about a club by its code. Requires Read permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: code
+          schema:
+            type: string
+          required: true
+          description: Code of the club
+      responses:
+        '200':
+          description: Club information
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Club not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Club not found"
+
   /club:
     get:
       summary: Get club info from name
@@ -202,6 +243,96 @@ paths:
                 properties:
                   error:
                     type: string
+
+  /member:
+    get:
+      summary: Get member's club
+      description: Returns the club associated with a member by name. Requires Read permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the member
+      responses:
+        '200':
+          description: Member's club
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  club_name:
+                    type: string
+                    nullable: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Member not found"
+    delete:
+      summary: Delete a member
+      description: Deletes a member by name. Requires Write permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the member to delete
+      responses:
+        '200':
+          description: Member deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+                  id:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Member not found"
 
   /ships:
     get:
