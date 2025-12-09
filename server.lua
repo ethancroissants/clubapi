@@ -139,6 +139,27 @@ server:get("/member", function(req)
     end
 end)
 
+
+server:get("/member/email", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkRead(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        if params.email == nil then
+            return {error = "Missing email parameter"}
+        end
+        local formula = "{Email} = " .. params.email
+        local fields = {"Name", "club_name"}
+        local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+        if member == nil then
+            return {error = "Member not found"}
+        end
+        local name = member.fields.club_name[1]
+        return name
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
 server:delete("/member", function(req)
     log.request(req:uri(), req:headers())
     if auth.checkWrite(req:headers().authorization) then
@@ -161,6 +182,7 @@ server:delete("/member", function(req)
         return {error = "Unauthorized"}
     end
 end)
+
 
 server:get("/members", function(req)
     log.request(req:uri(), req:headers())
