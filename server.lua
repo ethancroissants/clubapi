@@ -23,6 +23,18 @@ server:get("/clubs/country", function(req)
     log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
     local formula = "{venue_address_country} = " .. params.country
+    pprint(formula)
+    return {clubs  = airtable.count_records("Clubs", formula)}
+end)
+
+server:get("/clubs/level", function(req)
+    log.request(req:uri(), req:headers())
+    local params = url.parse_query(req:uri())
+    local stripped = url.strip_quotes(params.level)
+    local level = '"level ' ..stripped..'"'
+    pprint(level)
+    local formula = "{level} = "..level  
+    pprint(formula)
     return {clubs  = airtable.count_records("Clubs", formula)}
 end)
 
