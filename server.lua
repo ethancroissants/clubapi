@@ -321,6 +321,36 @@ else
 end
 end)
 
+-- ANNOUNCEMENT MANAGEMENT
+
+server:post("/announce", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkWrite(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        local club_name = params.club
+        local message = params.message
+        if club_name == nil or message == nil then
+            return {error = "Missing club or message parameter"}
+        end
+        local formula = "{club_name} = " .. club_name
+        local members = airtable.list_records("Members", "Grid view", {filterByFormula = formula}).records
+        if members == nil or #members == 0 then
+            return {error = "No members found for club"}
+        end
+        local updated = 0
+        for _, member in ipairs(members) do
+            airtable.update_record("Members", member.id, {
+                ["Annoucement"] = url.strip_quotes(message),
+                ["Send Annoucement"] = true
+            })
+            updated = updated + 1
+        end
+        return {success = true, membersUpdated = updated}
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
 server.port = os.getenv("PORT")
 server.hostname = os.getenv("HOST")
 pprint("Server running on port " .. server.port .. " at " .. server.hostname)

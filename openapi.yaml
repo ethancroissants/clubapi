@@ -613,3 +613,55 @@ paths:
                 properties:
                   error:
                     type: string
+
+  /announce:
+    post:
+      summary: Send announcement to club members
+      description: Sets the announcement message and triggers sending to all members of a club. Requires Write permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: club
+          schema:
+            type: string
+          required: true
+          description: Name of the club
+        - in: query
+          name: message
+          schema:
+            type: string
+          required: true
+          description: Announcement message to send
+      responses:
+        '200':
+          description: Announcement sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  membersUpdated:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '400':
+          description: Missing parameters or no members found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
