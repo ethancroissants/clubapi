@@ -80,6 +80,29 @@ paths:
                   clubs:
                     type: integer
 
+  /clubs/level:
+    get:
+      summary: Get amount of clubs at a level
+      description: Returns the count of clubs at the specified level.
+      security: []
+      parameters:
+        - in: query
+          name: level
+          schema:
+            type: string
+          required: true
+          description: The level to filter by (e.g. "1", "2", "3")
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clubs:
+                    type: integer
+
   /club/code:
     get:
       summary: Get club info from code
@@ -246,7 +269,7 @@ paths:
 
   /member:
     get:
-      summary: Get member's club
+      summary: Get member's club by name
       description: Returns the club associated with a member by name. Requires Read permissions.
       security:
         - ApiKeyAuth: []
@@ -259,15 +282,11 @@ paths:
           description: Name of the member
       responses:
         '200':
-          description: Member's club
+          description: Club name associated with the member
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  club_name:
-                    type: string
-                    nullable: true
+                type: string
         '401':
           description: Unauthorized
           content:
@@ -288,6 +307,49 @@ paths:
                   error:
                     type: string
                     example: "Member not found"
+
+  /member/email:
+    get:
+      summary: Get member's club by email
+      description: Returns the club associated with a member by email. Requires Read permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+            format: email
+          required: true
+          description: Email of the member
+      responses:
+        '200':
+          description: Club name associated with the member
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Member not found"
+
     delete:
       summary: Delete a member
       description: Deletes a member by name. Requires Write permissions.
