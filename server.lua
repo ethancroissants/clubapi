@@ -78,6 +78,29 @@ else
 end
 end)
 
+server:get("/club/ambassador", function(req)
+    log.request(req:uri(), req:headers())
+    local params = url.parse_query(req:uri())
+    if params.name == nil then
+        return {error = "Missing name parameter"}
+    end
+    local formula = "{club_name} = " .. params.name
+    local fields = {"rel_ambassador"}
+    local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+    if club == nil then
+        return {error = "Club not found"}
+    end
+    local ambassadorId = club.fields.rel_ambassador
+    if ambassadorId == nil then
+        return {error = "No ambassador assigned"}
+    end
+    local ambassador = airtable.get_record("Ambassadors", ambassadorId[1])
+    if ambassador == nil then
+        return {error = "Ambassador not found"}
+    end
+    return {email = ambassador.fields.email, slackId = ambassador.fields["Slack ID"]}
+end)
+
 -- LEADER MANAGEMENT 
 
 server:get("/leader", function(req)

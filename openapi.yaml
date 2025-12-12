@@ -185,6 +185,51 @@ paths:
                   venue_address_country:
                     type: string
 
+  /club/ambassador:
+    get:
+      summary: Get club ambassador
+      description: Returns the email and Slack ID of the ambassador assigned to a club.
+      security: []
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the club
+      responses:
+        '200':
+          description: Ambassador information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  slackId:
+                    type: string
+        '400':
+          description: Missing parameter or no ambassador assigned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing name parameter"
+        '404':
+          description: Club or ambassador not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Club not found"
+
   /leader:
     get:
       summary: Get leader from email
