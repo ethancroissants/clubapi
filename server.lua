@@ -139,13 +139,14 @@ server:get("/member", function(req)
             return {error = "Missing name parameter"}
         end
         local formula = "{Name} = " .. params.name
-        local fields = {"Name", "club_name"}
+        local fields = {"Name", "club_name", "Email"}
         local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
         if member == nil then
             return {error = "Member not found"}
         end
         local name = member.fields.club_name[1]
-        return name
+        local email = member.fields.Email
+        return {name = name, email = email}
     else
         return {error = "Unauthorized"}
     end
@@ -189,6 +190,62 @@ server:delete("/member", function(req)
             return {deleted = true, id = result.id}
         else
             return {error = "Failed to delete member"}
+        end
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
+server:post("/member", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkWrite(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        if params.name == nil then
+            return {error = "Missing name parameter"}
+        end
+        local formula = "{Name} = " .. params.name
+        local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula}).records[1]
+        if member == nil then
+            return {error = "Member not found"}
+        end
+        local updates = {}
+        if params.new_name then
+            updates["Name"] = url.strip_quotes(params.new_name)
+        end
+        if params.new_email then
+            updates["Email"] = url.strip_quotes(params.new_email)
+        end
+        if next(updates) == nil then
+            return {error = "No updates provided"}
+        end
+        local updated = airtable.update_record("Members", member.id, updates)
+        if updated then
+            return {name = updated.fields.Name, email = updated.fields.Email}
+        else
+            return {error = "Failed to update member"}
+        end
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
+server:post("/member/create", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkWrite(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        if params.name == nil or params.email == nil or params.join_code == nil then
+            return {error = "Missing required parameters (name, email, join_code)"}
+        end
+        local fields = {
+            ["Name"] = url.strip_quotes(params.name),
+            ["Email"] = url.strip_quotes(params.email),
+            ["Join Code"] = url.strip_quotes(params.join_code)
+        }
+        local created = airtable.create_record("Members", fields)
+        if created then
+            return {id = created.id, name = created.fields.Name, email = created.fields.Email}
+        else
+            return {error = "Failed to create member"}
         end
     else
         return {error = "Unauthorized"}
