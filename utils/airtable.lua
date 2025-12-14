@@ -2,6 +2,44 @@ local http = require("http")
 local json = require("serde").json
 local airtable = {}
 
+local dangerousPatterns = {
+	"IF%s*%(",
+	"SWITCH%s*%(",
+	"ERROR%s*%(",
+	"RECORD_ID%s*%(",
+	"CREATED_TIME%s*%(",
+	"LAST_MODIFIED_TIME%s*%(",
+	"REGEX_MATCH%s*%(",
+	"REGEX_REPLACE%s*%(",
+	"REGEX_EXTRACT%s*%(",
+}
+
+function airtable.sanitizeFormulaValue(value)
+	if type(value) ~= "string" then
+		return tostring(value)
+	end
+	local sanitized = value:gsub('"', '\\"')
+	sanitized = sanitized:gsub("'", "\\'")
+	sanitized = sanitized:gsub("{", "")
+	sanitized = sanitized:gsub("}", "")
+	sanitized = sanitized:gsub("%(", "")
+	sanitized = sanitized:gsub("%)", "")
+	return sanitized
+end
+
+function airtable.validateFormula(formula)
+	if type(formula) ~= "string" then
+		return false, "formula must be a string"
+	end
+	local upper = formula:upper()
+	for _, pattern in ipairs(dangerousPatterns) do
+		if upper:match(pattern:upper()) then
+			return false, "potentially dangerous formula pattern detected: " .. pattern
+		end
+	end
+	return true
+end
+
 local function get_api_key()
 	local key = os.getenv("AIRTABLE_API_KEY")
 	if not key or key == "" then
@@ -57,6 +95,13 @@ function airtable.list_records(table_name, view, params)
 	if params and type(params) == "table" then
 		for k, v in pairs(params) do
 			body[k] = v
+		end
+		if body.filterByFormula then
+			local valid, err = airtable.validateFormula(body.filterByFormula)
+			if not valid then
+				pprint({ error = "invalid_filter_formula", message = err })
+				return nil
+			end
 		end
 	end
 	if view and type(view) == "string" and view ~= "" then
@@ -349,6 +394,14 @@ function airtable.count_records(table_name, filter_formula)
 	if type(table_name) ~= "string" or table_name == "" then
 		pprint({ error = "invalid_table_name", provided = table_name })
 		return nil
+	end
+
+	if filter_formula and type(filter_formula) == "string" and filter_formula ~= "" then
+		local valid, err = airtable.validateFormula(filter_formula)
+		if not valid then
+			pprint({ error = "invalid_filter_formula", message = err })
+			return nil
+		end
 	end
 
 	local count = 0
