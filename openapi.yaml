@@ -17,30 +17,21 @@ security:
   - ApiKeyAuth: []
 
 paths:
+  ###################
+  # DOCUMENTATION
+  ###################
   /:
     get:
-      summary: API Root
-      description: Returns API status and available routes.
+      summary: API Documentation
+      description: Returns the API documentation page.
       security: []
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                    example: 200
-                  response:
-                    type: string
-                    example: "Clubs API"
-                  routes:
-                    type: array
-                    items:
-                      type: string
+          description: HTML documentation page
 
+  ###################
+  # CLUB MANAGEMENT
+  ###################
   /clubs:
     get:
       summary: Get total number of clubs
@@ -103,47 +94,6 @@ paths:
                   clubs:
                     type: integer
 
-  /club/code:
-    get:
-      summary: Get club info from code
-      description: Returns information about a club by its code. Requires Read permissions.
-      security:
-        - ApiKeyAuth: []
-      parameters:
-        - in: query
-          name: code
-          schema:
-            type: string
-          required: true
-          description: Code of the club
-      responses:
-        '200':
-          description: Club information
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Unauthorized"
-        '404':
-          description: Club not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Club not found"
-
   /club:
     get:
       summary: Get club info from name
@@ -184,6 +134,57 @@ paths:
                     type: string
                   venue_address_country:
                     type: string
+
+  /club/code:
+    get:
+      summary: Get club info from join code
+      description: Returns information about a club by its join code. Requires Read permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: code
+          schema:
+            type: string
+          required: true
+          description: Join code of the club
+      responses:
+        '200':
+          description: Club information
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Missing code parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing code parameter"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Club not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Club not found"
 
   /club/ambassador:
     get:
@@ -230,6 +231,9 @@ paths:
                     type: string
                     example: "Club not found"
 
+  ###################
+  # LEADER MANAGEMENT
+  ###################
   /leader:
     get:
       summary: Get leader from email
@@ -274,14 +278,14 @@ paths:
             type: string
             format: email
           required: true
-          description: Old email of the leader
+          description: Current email of the leader
         - in: query
           name: new_email
           schema:
             type: string
             format: email
           required: true
-          description: New email of the leader
+          description: New email for the leader
       responses:
         '200':
           description: Email updated successfully
@@ -291,6 +295,15 @@ paths:
                 type: object
                 properties:
                   new_email:
+                    type: string
+        '400':
+          description: Missing email parameter or leader not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
                     type: string
         '401':
           description: Unauthorized
@@ -302,16 +315,51 @@ paths:
                   error:
                     type: string
                     example: "Unauthorized"
-        '400':
-          description: Bad Request or Leader not found
+
+  ###################
+  # SHIP MANAGEMENT
+  ###################
+  /ships:
+    get:
+      summary: Get club ships
+      description: |
+        Returns the list of ships (projects) associated with a club.
+        Authentication is optional. Authenticated requests return more fields.
+      parameters:
+        - in: query
+          name: club_name
+          schema:
+            type: string
+          required: true
+          description: Name of the club
+      responses:
+        '200':
+          description: List of ships
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  error:
-                    type: string
+                type: array
+                items:
+                  type: object
+                  properties:
+                    workshop:
+                      type: string
+                    Rating:
+                      type: number
+                    code_url:
+                      type: string
+                    'club_name (from Clubs)':
+                      type: array
+                      items:
+                        type: string
+                    'YSWS–Name (from Unified YSWS Database)':
+                      type: array
+                      items:
+                        type: string
 
+  ###################
+  # MEMBER MANAGEMENT
+  ###################
   /member:
     get:
       summary: Get member's club and email by name
@@ -338,6 +386,16 @@ paths:
                   email:
                     type: string
                     format: email
+        '400':
+          description: Missing name parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing name parameter"
         '401':
           description: Unauthorized
           content:
@@ -396,6 +454,15 @@ paths:
                   email:
                     type: string
                     format: email
+        '400':
+          description: Missing name parameter, no updates provided, or member not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '401':
           description: Unauthorized
           content:
@@ -406,15 +473,6 @@ paths:
                   error:
                     type: string
                     example: "Unauthorized"
-        '400':
-          description: Bad Request (no updates provided or member not found)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
     delete:
       summary: Delete a member
       description: Deletes a member by name. Requires Write permissions.
@@ -440,6 +498,15 @@ paths:
                     example: true
                   id:
                     type: string
+        '400':
+          description: Missing name parameter or failed to delete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '401':
           description: Unauthorized
           content:
@@ -464,7 +531,7 @@ paths:
   /member/email:
     get:
       summary: Get member's club by email
-      description: Returns the club associated with a member by email. Requires Read permissions.
+      description: Returns the club name associated with a member by email. Requires Read permissions.
       security:
         - ApiKeyAuth: []
       parameters:
@@ -482,6 +549,16 @@ paths:
             application/json:
               schema:
                 type: string
+        '400':
+          description: Missing email parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing email parameter"
         '401':
           description: Unauthorized
           content:
@@ -544,6 +621,16 @@ paths:
                   email:
                     type: string
                     format: email
+        '400':
+          description: Missing required parameters or failed to create
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing required parameters (name, email, join_code)"
         '401':
           description: Unauthorized
           content:
@@ -554,57 +641,11 @@ paths:
                   error:
                     type: string
                     example: "Unauthorized"
-        '400':
-          description: Missing required parameters
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Missing required parameters (name, email, join_code)"
-
-  /ships:
-    get:
-      summary: Get club ships
-      description: Returns the list of ships (projects) associated with a club.
-      parameters:
-        - in: query
-          name: club_name
-          schema:
-            type: string
-          required: true
-          description: Name of the club
-      responses:
-        '200':
-          description: List of ships
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    workshop:
-                      type: string
-                    Rating:
-                      type: number
-                    code_url:
-                      type: string
-                    'club_name (from Clubs)':
-                      type: array
-                      items: 
-                        type: string
-                    'YSWS–Name (from Unified YSWS Database)':
-                      type: array
-                      items:
-                        type: string
 
   /members:
     get:
       summary: Get club members
-      description: Returns the members of the specified club. Requires Read permissions.
+      description: Returns the list of member names for the specified club. Requires Read permissions.
       security:
         - ApiKeyAuth: []
       parameters:
@@ -623,7 +664,9 @@ paths:
                 type: object
                 properties:
                   members:
-                    type: string
+                    type: array
+                    items:
+                      type: string
         '401':
           description: Unauthorized
           content:
@@ -645,6 +688,9 @@ paths:
                     type: string
                     example: "Club not found"
 
+  ###################
+  # LEVEL/STATUS MANAGEMENT
+  ###################
   /level:
     get:
       summary: Get club level
@@ -674,17 +720,17 @@ paths:
         - ApiKeyAuth: []
       parameters:
         - in: query
-          name: level
-          schema:
-            type: string
-          required: true
-          description: New level of the club
-        - in: query
           name: club_name
           schema:
             type: string
           required: true
           description: Name of the club
+        - in: query
+          name: level
+          schema:
+            type: string
+          required: true
+          description: New level for the club
       responses:
         '200':
           description: Level updated successfully
@@ -695,6 +741,15 @@ paths:
                 properties:
                   new_level:
                     type: string
+        '400':
+          description: Missing parameters or club not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '401':
           description: Unauthorized
           content:
@@ -704,15 +759,7 @@ paths:
                 properties:
                   error:
                     type: string
-        '400':
-          description: Bad Request or Club not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
+                    example: "Unauthorized"
 
   /status:
     get:
@@ -743,17 +790,17 @@ paths:
         - ApiKeyAuth: []
       parameters:
         - in: query
-          name: status
-          schema:
-            type: string
-          required: true
-          description: New status of the club
-        - in: query
           name: club_name
           schema:
             type: string
           required: true
           description: Name of the club
+        - in: query
+          name: status
+          schema:
+            type: string
+          required: true
+          description: New status for the club
       responses:
         '200':
           description: Status updated successfully
@@ -764,6 +811,15 @@ paths:
                 properties:
                   new_status:
                     type: string
+        '400':
+          description: Missing parameters or club not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '401':
           description: Unauthorized
           content:
@@ -773,16 +829,11 @@ paths:
                 properties:
                   error:
                     type: string
-        '400':
-          description: Bad Request or Club not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
+                    example: "Unauthorized"
 
+  ###################
+  # ANNOUNCEMENT MANAGEMENT
+  ###################
   /announce:
     post:
       summary: Send announcement to club members
@@ -815,6 +866,15 @@ paths:
                     example: true
                   membersUpdated:
                     type: integer
+        '400':
+          description: Missing parameters or no members found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '401':
           description: Unauthorized
           content:
@@ -825,12 +885,3 @@ paths:
                   error:
                     type: string
                     example: "Unauthorized"
-        '400':
-          description: Missing parameters or no members found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
