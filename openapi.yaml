@@ -528,6 +528,67 @@ paths:
                     type: string
                     example: "Member not found"
 
+  /member/code:
+    get:
+      summary: Get member info by leave code
+      description: Returns member information by their leave code. Requires Read permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: code
+          schema:
+            type: string
+          required: true
+          description: Leave code of the member
+      responses:
+        '200':
+          description: Member information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  club_name:
+                    type: array
+                    items:
+                      type: string
+                  email:
+                    type: string
+                    format: email
+        '400':
+          description: Missing code parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing code parameter"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Member not found"
+
   /member/email:
     get:
       summary: Get member's club by email

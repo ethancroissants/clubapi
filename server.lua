@@ -176,6 +176,25 @@ server:get("/member", function(req)
 end)
 
 
+server:get("/member/code", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkRead(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        if params.code == nil then
+            return {error = "Missing code parameter"}
+        end
+        local formula = "{Leave Code} = " .. params.code
+        local fields = {"Name", "club_name", "Email"}
+        local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+        if member == nil then
+            return {error = "Member not found"}
+        end
+        return {name = member.fields.Name, club_name = member.fields.club_name, email = member.fields.Email}
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
 server:get("/member/email", function(req)
     log.request(req:uri(), req:headers())
     if auth.checkRead(req:headers().authorization) then
