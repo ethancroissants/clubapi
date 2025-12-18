@@ -119,8 +119,10 @@ if auth.checkRead(req:headers().authorization) then
     elseif leader.fields.rel_co_leader_to_clubs then
         club = leader.fields.rel_co_leader_to_clubs[1]
     end
-    local club_name = airtable.get_record("Clubs", club).fields.club_name
-    return {club_name = club_name}
+    local clubfields = airtable.get_record("Clubs", club).fields
+    local club_name = clubfields.club_name
+    local club_status = clubfields.club_status
+    return {club_name = club_name, club_status = club_status}
 else 
     local params = url.parse_query(req:uri())
     local formula = "{email} = " .. params.email
