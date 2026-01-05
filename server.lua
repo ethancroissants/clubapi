@@ -19,6 +19,25 @@ server:get("/clubs", function(req)
     return {totalClubs  = airtable.list_records("Clubs", "Ivie ByID").records[1].fields.id}
 end)
 
+server:get("/clubs/map", function(req)
+    log.request(req:uri(), req:headers())
+    local fields = {"club_name", "venue_lat_fuzz", "venue_lng_fuzz", "club_status"}
+    local clubs = airtable.list_records("Clubs", "Map", {fields = fields}).records
+    local result = {}
+    for _, club in ipairs(clubs) do
+        table.insert(result, {
+            id = club.id,
+            fields = {
+                club_name = club.fields.club_name,
+                venue_lat_fuzz = club.fields.venue_lat_fuzz,
+                venue_lng_fuzz = club.fields.venue_lng_fuzz,
+                club_status = club.fields.club_status
+            }
+        })
+    end
+    return result
+end)
+
 server:get("/clubs/country", function(req)
     log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
