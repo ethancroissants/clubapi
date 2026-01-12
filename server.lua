@@ -126,7 +126,7 @@ server:get("/club/ambassador", function(req)
     if ambassador == nil then
         return {error = "Ambassador not found"}
     end
-    return {email = ambassador.fields.email, slackId = ambassador.fields["Slack ID"]}
+    return {email = ambassador.fields.email, slackId = ambassador.fields["Slack ID"], desc = ambassador.fields.desc, pfp = ambassador.fields.pfp[1].thumbnails.full.url}
 end)
 
 -- LEADER MANAGEMENT 
