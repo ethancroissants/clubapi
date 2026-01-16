@@ -18,13 +18,25 @@ function airtable.sanitizeFormulaValue(value)
 	if type(value) ~= "string" then
 		return tostring(value)
 	end
-	local sanitized = value:gsub('"', '\\"')
+	local sanitized = value:gsub("\\", "\\\\")
+	sanitized = sanitized:gsub('"', '\\"')
 	sanitized = sanitized:gsub("'", "\\'")
 	sanitized = sanitized:gsub("{", "")
 	sanitized = sanitized:gsub("}", "")
 	sanitized = sanitized:gsub("%(", "")
 	sanitized = sanitized:gsub("%)", "")
+	sanitized = sanitized:gsub("\n", " ")
+	sanitized = sanitized:gsub("\r", " ")
+	sanitized = sanitized:gsub("\t", " ")
 	return sanitized
+end
+
+function airtable.safeFormula(fieldName, value)
+	if value == nil then
+		return nil, "value cannot be nil"
+	end
+	local sanitized = airtable.sanitizeFormulaValue(value)
+	return "{" .. fieldName .. "} = \"" .. sanitized .. "\""
 end
 
 function airtable.validateFormula(formula)

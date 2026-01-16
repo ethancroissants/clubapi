@@ -50,19 +50,22 @@ end)
 server:get("/clubs/country", function(req)
     log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
-    local formula = "{venue_address_country} = " .. params.country
-    pprint(formula)
+    if params.country == nil then
+        return {error = "Missing country parameter"}
+    end
+    local formula = airtable.safeFormula("venue_address_country", params.country)
     return {clubs  = airtable.count_records("Clubs", formula)}
 end)
 
 server:get("/clubs/level", function(req)
     log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
+    if params.level == nil then
+        return {error = "Missing level parameter"}
+    end
     local stripped = url.strip_quotes(params.level)
-    local level = '"level ' ..stripped..'"'
-    pprint(level)
-    local formula = "{level} = "..level  
-    pprint(formula)
+    local levelValue = "level " .. airtable.sanitizeFormulaValue(stripped)
+    local formula = airtable.safeFormula("level", levelValue)
     return {clubs  = airtable.count_records("Clubs", formula)}
 end)
 
@@ -73,7 +76,7 @@ server:get("/club/code", function(req)
         if params.code == nil then
             return {error = "Missing code parameter"}
         end
-        local formula = "{Join Code} = " .. params.code
+        local formula = airtable.safeFormula("Join Code", params.code)
         local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York"}).records[1]
         if club == nil then
             return {error = "Club not found"}
@@ -86,24 +89,25 @@ end)
 
 server:get("/club", function(req)
     log.request(req:uri(), req:headers())
-if auth.checkRead(req:headers().authorization) == false then
     local params = url.parse_query(req:uri())
-    local formula = "{club_name} = " .. params.name
-    local fields = {"Est. # of Attendees", "call_meeting_days", "call_meeting_length", "club_name", "club_status", "id", "leader_slack_id", "level", "venue_address_country"}
-    local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
-    if club == nil then
-        return {club_name = nil}
+    if params.name == nil then
+        return {error = "Missing name parameter"}
     end
-    return club
-else 
-    local params = url.parse_query(req:uri())
-    local formula = "{club_name} = " .. params.name
-    local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York"}).records[1]
-    if club == nil then
-        return {club_name = nil}
+    local formula = airtable.safeFormula("club_name", params.name)
+    if auth.checkRead(req:headers().authorization) == false then
+        local fields = {"Est. # of Attendees", "call_meeting_days", "call_meeting_length", "club_name", "club_status", "id", "leader_slack_id", "level", "venue_address_country"}
+        local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+        if club == nil then
+            return {club_name = nil}
+        end
+        return club
+    else 
+        local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York"}).records[1]
+        if club == nil then
+            return {club_name = nil}
+        end
+        return club
     end
-    return club
-end
 end)
 
 server:get("/club/ambassador", function(req)
@@ -112,7 +116,7 @@ server:get("/club/ambassador", function(req)
     if params.name == nil then
         return {error = "Missing name parameter"}
     end
-    local formula = "{club_name} = " .. params.name
+    local formula = airtable.safeFormula("club_name", params.name)
     local fields = {"rel_ambassador"}
     local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
     if club == nil then
@@ -133,53 +137,54 @@ end)
 
 server:get("/leader", function(req)
     log.request(req:uri(), req:headers())
-if auth.checkRead(req:headers().authorization) then
     local params = url.parse_query(req:uri())
-    local formula = "{email} = " .. params.email
-    local fields = {"rel_leader_to_clubs", "rel_co_leader_to_clubs"}
-    local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
-    local club = nil
-    if leader == nil then
-        return {club_name = nil}
+    if params.email == nil then
+        return {error = "Missing email parameter"}
     end
-    if leader.fields.rel_leader_to_clubs then
-        club = leader.fields.rel_leader_to_clubs[1]
-    elseif leader.fields.rel_co_leader_to_clubs then
-        club = leader.fields.rel_co_leader_to_clubs[1]
-    end
-    local clubfields = airtable.get_record("Clubs", club).fields
-    local club_name = clubfields.club_name
-    local club_status = clubfields.club_status
-    return {club_name = club_name, club_status = club_status}
-else 
-    local params = url.parse_query(req:uri())
-    local formula = "{email} = " .. params.email
+    local formula = airtable.safeFormula("email", params.email)
     local fields = {"rel_leader_to_clubs", "rel_co_leader_to_clubs"}
-    local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields})
-    if leader.records[1] == nil then
-        return {leader = false}
+    if auth.checkRead(req:headers().authorization) then
+        local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+        local club = nil
+        if leader == nil then
+            return {club_name = nil}
+        end
+        if leader.fields.rel_leader_to_clubs then
+            club = leader.fields.rel_leader_to_clubs[1]
+        elseif leader.fields.rel_co_leader_to_clubs then
+            club = leader.fields.rel_co_leader_to_clubs[1]
+        end
+        local clubfields = airtable.get_record("Clubs", club).fields
+        local club_name = clubfields.club_name
+        local club_status = clubfields.club_status
+        return {club_name = club_name, club_status = club_status}
     else 
-        return {leader = true}
+        local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields})
+        if leader.records[1] == nil then
+            return {leader = false}
+        else 
+            return {leader = true}
+        end
     end
-end
 end)
 
 -- SHIP MANAGEMENT
 
 server:get("/ships", function(req)
     log.request(req:uri(), req:headers())
-if auth.checkRead(req:headers().authorization) == false then
     local params = url.parse_query(req:uri())
-    local formula = "{club_name (from Clubs)} = " .. params.club_name
-    local fields = {"workshop", "Rating", "code_url", "club_name (from Clubs)", "YSWS–Name (from Unified YSWS Database)"}
-    local ships = airtable.list_records("Club Ships", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records
-    return ships
-else 
-    local params = url.parse_query(req:uri())
-    local formula = "{club_name (from Clubs)} = " .. params.club_name
-    local ships = airtable.list_records("Club Ships", "Grid view", {filterByFormula = formula, timeZone = "America/New_York"}).records
-    return ships
-end
+    if params.club_name == nil then
+        return {error = "Missing club_name parameter"}
+    end
+    local formula = airtable.safeFormula("club_name (from Clubs)", params.club_name)
+    if auth.checkRead(req:headers().authorization) == false then
+        local fields = {"workshop", "Rating", "code_url", "club_name (from Clubs)", "YSWS–Name (from Unified YSWS Database)"}
+        local ships = airtable.list_records("Club Ships", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records
+        return ships
+    else 
+        local ships = airtable.list_records("Club Ships", "Grid view", {filterByFormula = formula, timeZone = "America/New_York"}).records
+        return ships
+    end
 end)
 
 -- MEMBER MANAGEMENT
@@ -191,7 +196,7 @@ server:get("/member", function(req)
         if params.name == nil then
             return {error = "Missing name parameter"}
         end
-        local formula = "{Name} = " .. params.name
+        local formula = airtable.safeFormula("Name", params.name)
         local fields = {"Name", "club_name", "Email"}
         local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
         if member == nil then
@@ -213,7 +218,7 @@ server:get("/member/code", function(req)
         if params.code == nil then
             return {error = "Missing code parameter"}
         end
-        local formula = "{Leave Code} = " .. params.code
+        local formula = airtable.safeFormula("Leave Code", params.code)
         local fields = {"Name", "club_name", "Email"}
         local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
         if member == nil then
@@ -232,7 +237,7 @@ server:get("/member/email", function(req)
         if params.email == nil then
             return {error = "Missing email parameter"}
         end
-        local formula = "{Email} = " .. params.email
+        local formula = airtable.safeFormula("Email", params.email)
         local fields = {"Name", "club_name"}
         local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
         if member == nil then
@@ -252,7 +257,7 @@ server:delete("/member", function(req)
         if params.name == nil then
             return {error = "Missing name parameter"}
         end
-        local formula = "{Name} = " .. params.name
+        local formula = airtable.safeFormula("Name", params.name)
         local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula}).records[1]
         if member == nil then
             return {error = "Member not found"}
@@ -275,7 +280,7 @@ server:post("/member", function(req)
         if params.name == nil then
             return {error = "Missing name parameter"}
         end
-        local formula = "{Name} = " .. params.name
+        local formula = airtable.safeFormula("Name", params.name)
         local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula}).records[1]
         if member == nil then
             return {error = "Member not found"}
@@ -329,7 +334,10 @@ server:get("/members", function(req)
     log.request(req:uri(), req:headers())
     if auth.checkRead(req:headers().authorization) then
         local params = url.parse_query(req:uri())
-        local formula = "{club_name} = " .. params.club_name
+        if params.club_name == nil then
+            return {error = "Missing club_name parameter"}
+        end
+        local formula = airtable.safeFormula("club_name", params.club_name)
         local fields = {"Members"}
         local club = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
         if club == nil then
@@ -355,7 +363,10 @@ end)
 server:get("/level", function(req)
     log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
-    local formula = "{club_name} = " .. params.club_name
+    if params.club_name == nil then
+        return {error = "Missing club_name parameter"}
+    end
+    local formula = airtable.safeFormula("club_name", params.club_name)
     local fields = {"level"}
     local level = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
     if level == nil then
@@ -367,7 +378,10 @@ end)
 server:get("/status", function(req)
     log.request(req:uri(), req:headers())
     local params = url.parse_query(req:uri())
-    local formula = "{club_name} = " .. params.club_name
+    if params.club_name == nil then
+        return {error = "Missing club_name parameter"}
+    end
+    local formula = airtable.safeFormula("club_name", params.club_name)
     local fields = {"club_status"}
     local status = airtable.list_records("Clubs", "Full Grid", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
     if status == nil then
@@ -384,70 +398,70 @@ end)
 
 server:post("/leader", function(req)
     log.request(req:uri(), req:headers())
-if auth.checkWrite(req:headers().authorization) then
-    local params = url.parse_query(req:uri())
-    local email = params.email
-    local new_email = params.new_email
-    if email == nil or new_email == nil then
-        return {error = "Missing email"}
+    if auth.checkWrite(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        local email = params.email
+        local new_email = params.new_email
+        if email == nil or new_email == nil then
+            return {error = "Missing email"}
+        end
+        local formula = airtable.safeFormula("email", email)
+        local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula}).records[1]
+        if leader == nil then
+            return {error = "Leader not found"}
+        end
+        local id = leader.id
+        local updateLeader = airtable.update_record("Leaders", id, {email = url.strip_quotes(new_email)})
+        return {new_email = updateLeader.fields.email}
+    else 
+        return {error = "Unauthorized"}
     end
-    local formula = "{email} = " .. email
-    local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula}).records[1]
-    if leader == nil then
-        return {error = "Leader not found"}
-    end
-    local id = leader.id
-    local updateLeader = airtable.update_record("Leaders", id, {email = url.strip_quotes(new_email)})
-    return {new_email = updateLeader.fields.email}
-else 
-    return {error = "Unauthorized"}
-end
 end)
 
 -- LEVEL/STATUS MANAGEMENT
 
 server:post("/status", function(req)
     log.request(req:uri(), req:headers())
-if auth.checkWrite(req:headers().authorization) then
-    local params = url.parse_query(req:uri())
-    local status = params.status
-    local club_name = params.club_name
-    if status == nil or club_name == nil then
-        return {error = "Missing parameters"}
+    if auth.checkWrite(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        local status = params.status
+        local club_name = params.club_name
+        if status == nil or club_name == nil then
+            return {error = "Missing parameters"}
+        end
+        local formula = airtable.safeFormula("club_name", club_name)
+        local club = airtable.list_records("Clubs", "Full Grid View", {filterByFormula = formula}).records[1]
+        if club == nil then
+            return {error = "Club not found"}
+        end
+        local id = club.id
+        local updateClub = airtable.update_record("Clubs", id, {club_status = url.strip_quotes(status)})
+        return {new_status = updateClub.fields.club_status}
+    else 
+        return {error = "Unauthorized"}
     end
-    local formula = "{club_name} = " .. club_name
-    local club = airtable.list_records("Clubs", "Full Grid View", {filterByFormula = formula}).records[1]
-    if club == nil then
-        return {error = "Club not found"}
-    end
-    local id = club.id
-    local updateClub = airtable.update_record("Clubs", id, {club_status = url.strip_quotes(status)})
-    return {new_status = updateClub.fields.club_status}
-else 
-    return {error = "Unauthorized"}
-end
 end)
 
 server:post("/level", function(req)
     log.request(req:uri(), req:headers())
-if auth.checkWrite(req:headers().authorization) then
-    local params = url.parse_query(req:uri())
-    local level = params.level
-    local club_name = params.club_name
-    if level == nil or club_name == nil then
-        return {error = "Missing parameters"}
+    if auth.checkWrite(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        local level = params.level
+        local club_name = params.club_name
+        if level == nil or club_name == nil then
+            return {error = "Missing parameters"}
+        end
+        local formula = airtable.safeFormula("club_name", club_name)
+        local club = airtable.list_records("Clubs", "Full Grid View", {filterByFormula = formula}).records[1]
+        if club == nil then
+            return {error = "Club not found"}
+        end
+        local id = club.id
+        local updateClub = airtable.update_record("Clubs", id, {level = url.strip_quotes(level)})
+        return {new_level = updateClub.fields.level}
+    else 
+        return {error = "Unauthorized"}
     end
-    local formula = "{club_name} = " .. club_name
-    local club = airtable.list_records("Clubs", "Full Grid View", {filterByFormula = formula}).records[1]
-    if club == nil then
-        return {error = "Club not found"}
-    end
-    local id = club.id
-    local updateClub = airtable.update_record("Clubs", id, {level = url.strip_quotes(level)})
-    return {new_level = updateClub.fields.level}
-else 
-    return {error = "Unauthorized"}
-end
 end)
 
 -- ANNOUNCEMENT MANAGEMENT
@@ -461,7 +475,7 @@ server:post("/announce", function(req)
         if club_name == nil or message == nil then
             return {error = "Missing club or message parameter"}
         end
-        local formula = "{club_name} = " .. club_name
+        local formula = airtable.safeFormula("club_name", club_name)
         local members = airtable.list_records("Members", "Grid view", {filterByFormula = formula}).records
         if members == nil or #members == 0 then
             return {error = "No members found for club"}
