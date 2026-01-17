@@ -35,7 +35,12 @@ function airtable.safeFormula(fieldName, value)
 	if value == nil then
 		return nil, "value cannot be nil"
 	end
-	local sanitized = airtable.sanitizeFormulaValue(value)
+	local strValue = tostring(value)
+	if (strValue:sub(1, 1) == '"' and strValue:sub(-1) == '"') or 
+	   (strValue:sub(1, 1) == "'" and strValue:sub(-1) == "'") then
+		strValue = strValue:sub(2, -2)
+	end
+	local sanitized = airtable.sanitizeFormulaValue(strValue)
 	return "{" .. fieldName .. "} = \"" .. sanitized .. "\""
 end
 
