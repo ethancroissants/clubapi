@@ -168,6 +168,39 @@ server:get("/leader", function(req)
     end
 end)
 
+server:get("/leader/slack", function(req)
+    log.request(req:uri(), req:headers())
+    local params = url.parse_query(req:uri())
+    if params.slackid == nil then
+        return {error = "Missing slackid parameter"}
+    end
+    local formula = airtable.safeFormula("slack_id", params.slackid)
+    local fields = {"rel_leader_to_clubs", "rel_co_leader_to_clubs"}
+    if auth.checkRead(req:headers().authorization) then
+        local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+        local club = nil
+        if leader == nil then
+            return {club_name = nil}
+        end
+        if leader.fields.rel_leader_to_clubs then
+            club = leader.fields.rel_leader_to_clubs[1]
+        elseif leader.fields.rel_co_leader_to_clubs then
+            club = leader.fields.rel_co_leader_to_clubs[1]
+        end
+        local clubfields = airtable.get_record("Clubs", club).fields
+        local club_name = clubfields.club_name
+        local club_status = clubfields.club_status
+        return {club_name = club_name, club_status = club_status}
+    else 
+        local leader = airtable.list_records("Leaders", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields})
+        if leader.records[1] == nil then
+            return {leader = false}
+        else 
+            return {leader = true}
+        end
+    end
+end)
+
 -- SHIP MANAGEMENT
 
 server:get("/ships", function(req)
@@ -238,6 +271,26 @@ server:get("/member/email", function(req)
             return {error = "Missing email parameter"}
         end
         local formula = airtable.safeFormula("Email", params.email)
+        local fields = {"Name", "club_name"}
+        local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
+        if member == nil then
+            return {error = "Member not found"}
+        end
+        local name = member.fields.club_name[1]
+        return name
+    else
+        return {error = "Unauthorized"}
+    end
+end)
+
+server:get("/member/slack", function(req)
+    log.request(req:uri(), req:headers())
+    if auth.checkRead(req:headers().authorization) then
+        local params = url.parse_query(req:uri())
+        if params.slackid == nil then
+            return {error = "Missing slackid parameter"}
+        end
+        local formula = airtable.safeFormula("Slack ID", params.slackid)
         local fields = {"Name", "club_name"}
         local member = airtable.list_records("Members", "Grid view", {filterByFormula = formula, timeZone = "America/New_York", fields = fields}).records[1]
         if member == nil then

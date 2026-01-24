@@ -316,6 +316,40 @@ paths:
                     type: string
                     example: "Unauthorized"
 
+  /leader/slack:
+    get:
+      summary: Get leader from Slack ID
+      description: |
+        Checks if a leader exists by Slack ID.
+        Authentication is optional. 
+        - Authenticated: Returns the club name associated with the leader.
+        - Unauthenticated: Returns true/false indicating existence.
+      parameters:
+        - in: query
+          name: slackid
+          schema:
+            type: string
+          required: true
+          description: Slack ID of the leader
+      responses:
+        '200':
+          description: Leader information
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      club_name:
+                        type: string
+                        nullable: true
+                      club_status:
+                        type: string
+                  - type: object
+                    properties:
+                      leader:
+                        type: boolean
+
   ###################
   # SHIP MANAGEMENT
   ###################
@@ -620,6 +654,57 @@ paths:
                   error:
                     type: string
                     example: "Missing email parameter"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Member not found"
+
+  /member/slack:
+    get:
+      summary: Get member's club by Slack ID
+      description: Returns the club name associated with a member by Slack ID. Requires Read permissions.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: slackid
+          schema:
+            type: string
+          required: true
+          description: Slack ID of the member
+      responses:
+        '200':
+          description: Club name associated with the member
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Missing slackid parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing slackid parameter"
         '401':
           description: Unauthorized
           content:
